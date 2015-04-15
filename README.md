@@ -9,6 +9,7 @@ A simple matrix class for Arduino compatible MCUs specifically for handling inte
 - Print a row, column, or entire matrix
 
 #####Functions to be Added
+- Transpose matrix
 - Find determinant for order n matrix
 - Row reduction
 
