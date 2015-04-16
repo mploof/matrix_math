@@ -22,6 +22,13 @@ matrix::matrix(int p_rows, int p_columns){
 
 }
 
+matrix::matrix(int p_rows, int p_columns, int p_fill){
+
+	m_matrix = NULL;
+	init(p_rows, p_columns, p_fill);
+
+}
+
 matrix::~matrix() {
 
 	// Make sure matrix memory is deallocated
@@ -30,7 +37,7 @@ matrix::~matrix() {
 }
 
 void matrix::init(int p_rows, int p_columns){
-
+	
 	// Make sure any existing matrix is cleared first
 	deleteMatrix();
 
@@ -41,6 +48,19 @@ void matrix::init(int p_rows, int p_columns){
 	m_matrix = new int*[m_rows];
 	for (int i = 0; i < m_rows; i++)
 		m_matrix[i] = new int[m_columns];
+}
+
+void matrix::init(int p_rows, int p_columns, int p_fill){
+
+	init(p_rows, p_columns);
+
+	// Pre-populate the matrix with the fill value
+	for (byte r = 0; r < m_rows; r++){
+		for (byte c = 0; c < m_columns; c++){
+			m_matrix[r][c] = p_fill;
+		}
+	}
+
 }
 
 void matrix::deleteMatrix() {
@@ -67,13 +87,26 @@ void matrix::deleteMatrix() {
 **********************************/
 
 // Public
-void matrix::setValue(int p_row, int p_column, int p_value) {
+
+// Set the value of the specified matrix element. Return an error code if an invalid position is given
+int matrix::setValue(int p_row, int p_column, int p_value) {
+	
+	// Don't allow setting value outside established matrix size
+	if (p_row >= m_rows || p_column >= m_columns || p_row < 0 || p_column < 0)
+		return -1;
+
 	m_matrix[p_row][p_column] = p_value;
 }
 
 // Private
+
+// Adds the specified vector as a new row
+// Returns an error code if the input is not a row vector with the correct number of columns
 int matrix::appendRow(matrix& p_vector) {
 	
+	if (p_vector.m_rows != 1 || p_vector.m_columns != this->m_columns)
+		return -1;
+
 	int new_rows = m_rows + 1;
 
 	// Create a temporary matrix
@@ -99,7 +132,12 @@ int matrix::appendRow(matrix& p_vector) {
 	}
 }
 
+// Adds the input vector as a new column
+// Returns an error code if the input is not a row vector with correct number of rows
 int matrix::appendCol(matrix& p_vector) {
+
+	if (p_vector.m_columns != 1 || p_vector.m_rows != this->m_rows)
+		return -1;
 	
 	int new_columns = m_columns + 1;
 
@@ -152,7 +190,7 @@ Returns a column as n x 1 vector
 */
 void matrix::getColumn(matrix& p_vector, int p_column) {
 
-	// Clear any existing matrix in object
+	// Clear any existing matrix in the object
 	p_vector.deleteMatrix();
 
 	// Create m_columns x 1 vector in reference object
@@ -171,7 +209,7 @@ Returns a row as 1 x n vector
 */
 void matrix::getRow(matrix& p_vector, int p_row) {
 
-	// Clear any existing matrix in object
+	// Clear any existing matrix in the object
 	p_vector.deleteMatrix();
 
 	// Create 1 x m_columns vector in reference object
@@ -313,16 +351,68 @@ bool matrix::sizeMatch(matrix& p_A, matrix& p_B){
 		return false;
 }
 
-int matrix::det(){
+// Find the determinant of an n x n matrix
+int matrix::determinant(matrix& p_matrix){
 
+	int det = 0;
 
+	// Is the matrix square? If not we cannot find the determinant, so bail
+	if (p_matrix.m_rows != p_matrix.m_columns)
+		return -10000;
 
-}
+	// If the matrix is larger than order 7, bail, since it will take too long to calculate
+	/*if (p_matrix.m_rows > 7)
+		return -20000;*/
 
-int matrix::factorize(matrix& p_matrix){
+	// Is the input a 2x2 matrix? If yes, then find the determinant
+	if (p_matrix.m_rows == 2 && p_matrix.m_columns == 2) {
+		det = (p_matrix.m_matrix[0][0] * p_matrix.m_matrix[1][1]) - (p_matrix.m_matrix[0][1] * p_matrix.m_matrix[1][0]);
+		return det;
+	}
+	
+	// If not, factorize the matrix further
+	else {
+		// Create n submatricies of order n - 1 and factorize them
+		for (byte i = 0; i < p_matrix.m_rows; i++){
 
-	for (byte i = 0; i < p_matrix.m_columns; i++){
-		delay(10);
+			// Save the row 0 value of the current column as the coefficient
+			int submat_coeff = p_matrix.m_matrix[0][i];
+
+			// Create submatrix of order n - 1
+			matrix submatrix(p_matrix.m_rows - 1, p_matrix.m_columns - 1);
+
+			// Create a submatrix column counter
+			byte c_sub = 0;
+
+			// Populate the submatrix
+			for (byte c = 0; c < p_matrix.m_columns; c++){
+
+				// If the current input matrix column is that of the current coefficient, skip this iteration
+				if (c == i)
+					continue;
+
+				// Populate the current column, j, of the submatrix
+				for (byte r = 1; r < p_matrix.m_rows; r++){
+					byte r_sub = r - 1;
+					submatrix.m_matrix[r_sub][c_sub] = p_matrix.m_matrix[r][c];
+				}
+
+				//j Increment to the next submatrix column
+				c_sub++;
+			}
+
+			// Reset the sub matrix column counter
+			c_sub = 0;
+			/*Serial.println("Parsing submatrix");
+			submatrix.print();*/
+			// Recurse function. If i is even, add the result to the current determinant value, other wise subtract it
+			if (i % 2 == 0)
+				det += submat_coeff * determinant(submatrix);
+			else
+				det -= submat_coeff * determinant(submatrix);
+		}
+
+		return det;
 	}
 }
 
@@ -342,8 +432,6 @@ void matrix::print(){
 		}
 		Serial.println("");
 	}
-	Serial.println("");
-
 }
 
 void matrix::printRow(int p_row){
@@ -352,7 +440,6 @@ void matrix::printRow(int p_row){
 		Serial.print(m_matrix[p_row][c]);
 		Serial.print("\t");
 	}
-	Serial.println("");
 	Serial.println("");
 }
 
