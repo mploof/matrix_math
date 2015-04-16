@@ -7,12 +7,11 @@ A simple matrix class for Arduino compatible MCUs specifically for handling inte
 - Append vectors to matricies as rows and columns
 - Extract rows and and columns from matricies to vectors
 - Print a row, column, or entire matrix
+- Find determinant for order n matrix, where n =< 7
 
 #####Functions to be Added
 - Transpose matrix
-- Find determinant for order n matrix
 - Row reduction
-
 
 #####Useful Spline Interpolation References
 - http://www.math.ucla.edu/~baker/149.1.02w/handouts/dd_splines.pdf
