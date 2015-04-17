@@ -1,12 +1,17 @@
 #include "Arduino.h"
 #include "matrix_math.h"
 
+
 /**********************************
 
 	Constructors, destructors,
 	init, and memory management
 
 ***********************************/
+
+/*** Public ***/
+
+// Default constructor
 matrix::matrix(){
 
 	m_matrix = NULL;
@@ -15,6 +20,7 @@ matrix::matrix(){
 
 }
 
+// Constructor that initializes matrix with size p_rows x p_columns
 matrix::matrix(int p_rows, int p_columns){
 
 	m_matrix = NULL;
@@ -22,6 +28,7 @@ matrix::matrix(int p_rows, int p_columns){
 
 }
 
+// Constructor that initializes matrix with size p_rows x p_columns, where all elements = p_fill
 matrix::matrix(int p_rows, int p_columns, int p_fill){
 
 	m_matrix = NULL;
@@ -29,6 +36,7 @@ matrix::matrix(int p_rows, int p_columns, int p_fill){
 
 }
 
+// Default destructor
 matrix::~matrix() {
 
 	// Make sure matrix memory is deallocated
@@ -36,13 +44,16 @@ matrix::~matrix() {
 	deleteMatrix();
 }
 
+// Initialize matrix with size p_rows x p_columns
 void matrix::init(int p_rows, int p_columns){
-	
+
 	// Make sure any existing matrix is cleared first
 	deleteMatrix();
-
+	
 	m_rows = p_rows;
 	m_columns = p_columns;
+	m_inv_denom = 0;
+	m_det_defined = false;
 	
 	// Allocate memory for new matrix
 	m_matrix = new int*[m_rows];
@@ -50,6 +61,7 @@ void matrix::init(int p_rows, int p_columns){
 		m_matrix[i] = new int[m_columns];
 }
 
+// Initialize matrix with size p_rows x p_columns, where all elements = p_fill
 void matrix::init(int p_rows, int p_columns, int p_fill){
 
 	init(p_rows, p_columns);
@@ -63,6 +75,9 @@ void matrix::init(int p_rows, int p_columns, int p_fill){
 
 }
 
+/*** Private ***/
+
+// Deallocates the memory for the object matrix
 void matrix::deleteMatrix() {
 
 	// If the m_matrix pointer is null, then
@@ -80,13 +95,14 @@ void matrix::deleteMatrix() {
 	m_matrix = NULL;
 }
 
+
 /*********************************
 
 		Set Functions
 
 **********************************/
 
-// Public
+/*** Public ***/
 
 // Set the value of the specified matrix element. Return an error code if an invalid position is given
 int matrix::setValue(int p_row, int p_column, int p_value) {
@@ -96,15 +112,37 @@ int matrix::setValue(int p_row, int p_column, int p_value) {
 		return -1;
 
 	m_matrix[p_row][p_column] = p_value;
+
+	// Determinant is no longer defined
+	m_det_defined = false;
 }
 
-// Private
+// Sets 4s down matrix diagonal with 1s on either side of 4s
+void matrix::set141(){
+
+	for (byte r = 0; r < m_rows; r++){
+		for (byte c = 0; c < m_columns; c++){
+			if (c == r)
+				m_matrix[r][c] = 4;
+			else if (c == r + 1 || c == r - 1)
+				m_matrix[r][c] = 1;
+			else
+				m_matrix[r][c] = 0;
+		}
+	}
+
+	// Determinant is no longer defined
+	m_det_defined = false;
+
+}
+
+/*** Private ***/
 
 // Adds the specified vector as a new row
 // Returns an error code if the input is not a row vector with the correct number of columns
-int matrix::appendRow(matrix& p_vector) {
+int matrix::appendRow(const matrix& p_row_vector) {
 	
-	if (p_vector.m_rows != 1 || p_vector.m_columns != this->m_columns)
+	if (p_row_vector.m_rows != 1 || p_row_vector.m_columns != this->m_columns)
 		return -1;
 
 	int new_rows = m_rows + 1;
@@ -115,7 +153,7 @@ int matrix::appendRow(matrix& p_vector) {
 	for (byte r = 0; r < new_rows; r++){
 		for (byte c = 0; c < m_columns; c++){
 			if (r == new_rows - 1)
-				temp.m_matrix[r][c] = p_vector.m_matrix[0][c];
+				temp.m_matrix[r][c] = p_row_vector.m_matrix[0][c];
 			else
 				temp.m_matrix[r][c] = this->m_matrix[r][c];
 		}
@@ -130,13 +168,16 @@ int matrix::appendRow(matrix& p_vector) {
 			m_matrix[r][c] = temp.m_matrix[r][c];
 		}
 	}
+
+	// Determinant is no longer defined
+	m_det_defined = false;
 }
 
 // Adds the input vector as a new column
 // Returns an error code if the input is not a row vector with correct number of rows
-int matrix::appendCol(matrix& p_vector) {
+int matrix::appendCol(const matrix& p_column_vector) {
 
-	if (p_vector.m_columns != 1 || p_vector.m_rows != this->m_rows)
+	if (p_column_vector.m_columns != 1 || p_column_vector.m_rows != this->m_rows)
 		return -1;
 	
 	int new_columns = m_columns + 1;
@@ -147,7 +188,7 @@ int matrix::appendCol(matrix& p_vector) {
 	for (byte r = 0; r < m_rows; r++){
 		for (byte c = 0; c < new_columns; c++){
 			if (c == new_columns - 1)
-				temp.m_matrix[r][c] = p_vector.m_matrix[r][0];
+				temp.m_matrix[r][c] = p_column_vector.m_matrix[r][0];
 			else
 				temp.m_matrix[r][c] = this->m_matrix[r][c];
 		}
@@ -162,6 +203,9 @@ int matrix::appendCol(matrix& p_vector) {
 			m_matrix[r][c] = temp.m_matrix[r][c];
 		}
 	}
+
+	// Determinant is no longer defined
+	m_det_defined = false;
 }
 
 
@@ -171,55 +215,49 @@ int matrix::appendCol(matrix& p_vector) {
 
 **********************************/
 
+/*** Public ***/
+
+// Returns the number of rows in the matrix
 int matrix::rowCount(){
 	return m_rows;
 }
 
+// Returns the number of columns in the matrix
 int matrix::colCount(){
 	return m_columns;
 }
 
+// Returns the value of the specified element
 int matrix::getValue(int p_row, int p_column) {
 	return m_matrix[p_row][p_column];
 }
 
-/*
+// Sets n x 1 input vector as specified column
+void matrix::getColumn(int p_column, matrix& p_vector) {
 
-Returns a column as n x 1 vector
-
-*/
-void matrix::getColumn(matrix& p_vector, int p_column) {
-
-	// Clear any existing matrix in the object
-	p_vector.deleteMatrix();
-
-	// Create m_columns x 1 vector in reference object
-	p_vector.init(m_rows, 1);
+	// If the target vector is the wrong size, reinitialize it
+	if (p_vector.m_rows != 1 || p_vector.m_columns != this->m_columns)
+		p_vector.init(this->m_rows, 1);
 
 	// Populate vector with selected column
-	for (byte i = 0; i < m_rows; i++){
+	for (byte i = 0; i < this->m_rows; i++){
 		p_vector.setValue(i, 0, m_matrix[i][p_column]);
 	}
 }
 
-/*
+// Sets 1 x n input vector as specified row
+void matrix::getRow(int p_row, matrix& p_vector) {
 
-Returns a row as 1 x n vector
-
-*/
-void matrix::getRow(matrix& p_vector, int p_row) {
-
-	// Clear any existing matrix in the object
-	p_vector.deleteMatrix();
-
-	// Create 1 x m_columns vector in reference object
-	p_vector.init(1, m_columns);
+	// If the target vector is the wrong size, reinitialize it
+	if (p_vector.m_rows != 1 || p_vector.m_columns != this->m_columns)
+		p_vector.init(1, this->m_columns);
 
 	// Populate vector with selected row
-	for (byte i = 0; i < m_columns; i++){
+	for (byte i = 0; i < this->m_columns; i++){
 		p_vector.setValue(0, i, m_matrix[p_row][i]);
 	}
 }
+
 
 /*********************************
 
@@ -227,8 +265,10 @@ void matrix::getRow(matrix& p_vector, int p_row) {
 
 **********************************/
 
-// [A]+[B], store result in target matrix
-int matrix::add(matrix& p_A, matrix& p_B, matrix& p_target){
+/*** Public ***/
+
+// [A] + [B] = [target]
+int matrix::add(const matrix& p_A, const matrix& p_B, matrix& p_target){
 
 	// Return error code if matrix sizes do not match
 	if (sizeMatch(p_A, p_B) == false)
@@ -246,8 +286,8 @@ int matrix::add(matrix& p_A, matrix& p_B, matrix& p_target){
 	return 0;
 }
 
-// [A] - const, store result in target matrix
-void matrix::add(matrix& p_A, int p_const, matrix& p_target){
+// [A] + int = [target]
+void matrix::add(const matrix& p_A, int p_const, matrix& p_target){
 
 	// If the target matrix is not the correct size, reinitialize it
 	// This also avoids reinitializing [A] if it is also being used as the target
@@ -265,8 +305,8 @@ void matrix::add(matrix& p_A, int p_const, matrix& p_target){
 
 }
 
-// [A]-[B], store result in target matrix
-int matrix::subtract(matrix& p_A, matrix& p_B, matrix& p_target){
+// [A] - [B] = [target]
+int matrix::subtract(const matrix& p_A, const matrix& p_B, matrix& p_target){
 
 	// Return error code if matrix sizes do not match
 	if (sizeMatch(p_A, p_B) == false)
@@ -283,8 +323,8 @@ int matrix::subtract(matrix& p_A, matrix& p_B, matrix& p_target){
 	return 0;
 }
 
-// [A] - const, store result in target matrix
-void matrix::subtract(matrix& p_A, int p_const, matrix& p_target){
+// [A] - int = [target]
+void matrix::subtract(const matrix& p_A, int p_const, matrix& p_target){
 
 	// If the target matrix is not the correct size, reinitialize it
 	// This also avoids reinitializing [A] if it is also being used as the target
@@ -300,8 +340,8 @@ void matrix::subtract(matrix& p_A, int p_const, matrix& p_target){
 
 }
 
-// [A]*[B], store result in target matrix
-int matrix::mult(matrix& p_A, matrix& p_B, matrix& p_target){
+// [A] * [B] = [target]
+int matrix::mult(const matrix& p_A, const matrix& p_B, matrix& p_target){
 	
 	// Return error code if [A] column count does not match [B] row count
 	if (p_A.m_rows != p_B.m_columns)
@@ -324,11 +364,16 @@ int matrix::mult(matrix& p_A, matrix& p_B, matrix& p_target){
 			p_target.m_matrix[i][j] = product;
 		}
 	}
+	
+	// If the [B] matrix is an inverse, divide the target by [B] inverse denominator
+	if (p_B.m_inv_denom != 0)
+		p_target.divideScalar(p_B.m_inv_denom);
+
 	return 0;
 }
 
-// const * [A], store result in target matrix
-void matrix::mult(int p_const, matrix& p_A, matrix& p_target){
+// [A] * int = [target]
+void matrix::mult(int p_const, const matrix& p_A, matrix& p_target){
 
 	// If the target matrix is not the correct size, reinitialize it
 	// This also avoids reinitializing [A] if it is also being used as the target
@@ -343,79 +388,232 @@ void matrix::mult(int p_const, matrix& p_A, matrix& p_target){
 
 }
 
-// Check whether [A] and [B] have matching size in both dimensions
-bool matrix::sizeMatch(matrix& p_A, matrix& p_B){
-	if (p_A.m_columns == p_B.m_columns && p_A.m_rows == p_B.m_rows)
+// Checks whether matrix is square, returns true/false
+bool matrix::isSquare() const {
+	if (m_rows == m_columns)
 		return true;
 	else
 		return false;
 }
 
-// Find the determinant of an n x n matrix
-int matrix::determinant(matrix& p_matrix){
+// det[A] (Finds determinant of 2x2 matrix, factorizes and recurses for larger matricies)
+int matrix::determinant(const matrix& p_matrix){
 
-	int det = 0;
+	// Don't re-calculate if it's already been done
+	if (p_matrix.m_det_defined)
+		return p_matrix.m_det;
+
+	int det = 0;	// Determinant value
+	int n = 0;		// Matrix order
 
 	// Is the matrix square? If not we cannot find the determinant, so bail
-	if (p_matrix.m_rows != p_matrix.m_columns)
+	if (p_matrix.isSquare() == false)
 		return -10000;
+	else
+		n = p_matrix.m_rows;
 
 	// If the matrix is larger than order 7, bail, since it will take too long to calculate
-	/*if (p_matrix.m_rows > 7)
-		return -20000;*/
+	if (n > 7)
+		return -20000;
+
+	// Is the input a 1x1 matrix? If yes, then determinant = that single value (And why are you trying to find the determinant?)
+	if (n == 1)
+		return p_matrix.m_matrix[0][0];
 
 	// Is the input a 2x2 matrix? If yes, then find the determinant
-	if (p_matrix.m_rows == 2 && p_matrix.m_columns == 2) {
+	if (n == 2) {
 		det = (p_matrix.m_matrix[0][0] * p_matrix.m_matrix[1][1]) - (p_matrix.m_matrix[0][1] * p_matrix.m_matrix[1][0]);
 		return det;
 	}
 	
-	// If not, factorize the matrix further
+	// If not, find the ijth minors of the matrix until 2 x 2 minors are found
 	else {
 		// Create n submatricies of order n - 1 and factorize them
-		for (byte i = 0; i < p_matrix.m_rows; i++){
+		for (byte i = 0; i < n; i++){
 
-			// Save the row 0 value of the current column as the coefficient
-			int submat_coeff = p_matrix.m_matrix[0][i];
+			// Save the row 0 value of the current column as the coefficient of the minor
+			int minor_coeff = p_matrix.m_matrix[0][i];
 
-			// Create submatrix of order n - 1
-			matrix submatrix(p_matrix.m_rows - 1, p_matrix.m_columns - 1);
+			// Create minor of order n - 1
+			matrix minor(n - 1, n - 1);
 
 			// Create a submatrix column counter
 			byte c_sub = 0;
 
 			// Populate the submatrix
-			for (byte c = 0; c < p_matrix.m_columns; c++){
+			for (byte c = 0; c < n; c++){
 
 				// If the current input matrix column is that of the current coefficient, skip this iteration
 				if (c == i)
 					continue;
 
 				// Populate the current column, j, of the submatrix
-				for (byte r = 1; r < p_matrix.m_rows; r++){
+				for (byte r = 1; r < n; r++){
 					byte r_sub = r - 1;
-					submatrix.m_matrix[r_sub][c_sub] = p_matrix.m_matrix[r][c];
+					minor.m_matrix[r_sub][c_sub] = p_matrix.m_matrix[r][c];
 				}
 
-				//j Increment to the next submatrix column
+				// Increment to the next submatrix column
 				c_sub++;
 			}
 
 			// Reset the sub matrix column counter
 			c_sub = 0;
-			/*Serial.println("Parsing submatrix");
-			submatrix.print();*/
+
 			// Recurse function. If i is even, add the result to the current determinant value, other wise subtract it
 			if (i % 2 == 0)
-				det += submat_coeff * determinant(submatrix);
+				det += minor_coeff * determinant(minor);
 			else
-				det -= submat_coeff * determinant(submatrix);
+				det -= minor_coeff * determinant(minor);
 		}
 
 		return det;
 	}
 }
 
+// transpose[A] = [target]
+void matrix::transpose(const matrix& p_matrix, matrix& p_target) {
+	
+	// If the target isn't the correct size, reinitialize it
+	if (p_target.m_rows != p_matrix.m_columns || p_target.m_columns != p_matrix.m_rows)
+		p_target.init(p_matrix.m_columns, p_matrix.m_rows);
+
+	for (byte r = 0; r < p_matrix.m_rows; r++) {
+		for (byte c = 0; c < p_matrix.m_columns; c++) {
+			p_target.m_matrix[c][r] = p_matrix.m_matrix[r][c];
+		}
+	}
+}
+
+// [target] = [A]^-1
+int matrix::inverse(const matrix& p_matrix, matrix& p_target){
+	
+	// Only try to invert square matricies. Return an error code if necessary
+	if (p_matrix.isSquare() == false)
+		return -1;
+
+	int err = 0;
+
+	// Create the cofactor matrix and transpose it
+	p_matrix.cofactorMatrix(p_target);
+	p_target.transposeInPlace();
+
+	// Save the determinant of the original matrix as the inverse element denominator 
+	// Use the precalculated determinant, if available
+	if (p_matrix.m_det_defined)
+		p_target.m_inv_denom = p_matrix.m_det;
+	// Otherwise, calculate the determinant
+	else
+		p_target.m_inv_denom = determinant(p_matrix);
+
+	return 0;
+}
+
+/*** Private ***/
+
+// Transposes a matrix in place. Can only be performed on square matricies
+int matrix::transposeInPlace(){
+	
+	// If the matrix is not square, return an error code
+	if (isSquare() == false)
+		return -1;
+
+	int temp = 0;
+
+	for (byte r = 1; r < m_rows; r++) {
+		for (byte c = 0; c < r; c++) {
+			temp = m_matrix[r][c];
+			m_matrix[r][c] = m_matrix[c][r];
+			m_matrix[c][r] = temp;
+		}
+	}
+	
+	// Determinant is no longer defined
+	m_det_defined = false;
+
+	return 0;
+}
+
+// Creates cofactor matrix in target object
+int matrix::cofactorMatrix(matrix& p_target) const {
+
+	// If the input matrix isn't square, bail and report error code
+	if (isSquare() == false)
+		return -1;
+
+	// Set the matrix order
+	int n = this->m_rows;
+
+	// If the target isn't the correct size, reinitialize it
+	if (sizeMatch(p_target) == false)
+		p_target.init(n, n);
+
+	int det = 0;
+
+	// Hold the adjoint matricies
+	matrix c(n - 1, n - 1);
+
+	int i1 = 0;
+	int j1 = 0;
+	for (byte j = 0; j < n; j++) {
+		for (byte i = 0; i < n; i++) {
+
+			/* Form the adjoint a_ij */
+			i1 = 0;
+			for (byte ii = 0; ii<n; ii++) {
+				if (ii == i)
+					continue;
+				j1 = 0;
+				for (byte jj = 0; jj<n; jj++) {
+					if (jj == j)
+						continue;
+					c.m_matrix[i1][j1] = this->m_matrix[ii][jj];
+					j1++;
+				}
+				i1++;
+			}
+
+			/* Calculate the determinate */
+			det = matrix::determinant(c);
+
+			/* Fill in the elements of the cofactor */
+			if ((i + j) % 2 == 0)
+				p_target.m_matrix[i][j] = det;
+			else
+				p_target.m_matrix[i][j] = -det;
+		}
+	}
+}
+
+// Divides every matrix element by scalar p_input
+void matrix::divideScalar(int p_input){
+
+	// Determinant is no longer defined
+	m_det_defined = false;
+
+	for (byte r = 0; r < m_rows; r++) {
+		for (byte c = 0; c < m_columns; c++) {
+			m_matrix[r][c] = m_matrix[r][c] / p_input;
+		}
+	}
+
+}
+
+// Checks whether current matrix object and target have matching dimensions
+bool matrix::sizeMatch(const matrix& p_B) const {
+	if (this->m_columns == p_B.m_columns && this->m_rows == p_B.m_rows)
+		return true;
+	else
+		return false;
+}
+
+// Check whether [A] and [B] have matching size in both dimensions
+bool matrix::sizeMatch(const matrix& p_A, const matrix& p_B){
+	if (p_A.m_columns == p_B.m_columns && p_A.m_rows == p_B.m_rows)
+		return true;
+	else
+		return false;
+}
 
 /*********************************
 
@@ -423,32 +621,58 @@ int matrix::determinant(matrix& p_matrix){
 
 **********************************/
 
-void matrix::print(){
+/*** Public ***/
 
+// Prints the entire matrix with name header
+void matrix::print(String p_name){
+	Com.println("");
+	Com.println(p_name);
+	matrix::print();
+}
+
+// Prints the entire matrix
+void matrix::print(){
 	for (byte r = 0; r < rowCount(); r++) {
 		for (byte c = 0; c < colCount(); c++) {
-			Serial.print(m_matrix[r][c]);
-			Serial.print("\t");
+			
+			// If this element is positive, print an extra space to align it with negative values
+			if (m_matrix[r][c] >= 0)
+				Com.print(" ");
+
+			// Print the element
+			Com.print(m_matrix[r][c]);
+
+			// If this matrix is an inverse, print its denominator value
+			if (m_inv_denom != 0){
+				Com.print("/");
+				Com.print(m_inv_denom);
+			}
+
+			// Print a tab for spacing
+			Com.print("\t");
 		}
-		Serial.println("");
+		// Move to the next row
+		Com.println("");
 	}
 }
 
+// Prints specified row
 void matrix::printRow(int p_row){
 
 	for (byte c = 0; c < colCount(); c++) {
-		Serial.print(m_matrix[p_row][c]);
-		Serial.print("\t");
+		Com.print(m_matrix[p_row][c]);
+		Com.print("\t");
 	}
-	Serial.println("");
+	Com.println("");
 }
 
+// Prints specified column
 void matrix::printCol(int p_column){
 
 	for (byte r = 0; r < rowCount(); r++) {
-		Serial.print(m_matrix[r][p_column]);
-		Serial.println("");
+		Com.print(m_matrix[r][p_column]);
+		Com.println("");
 	}
-	Serial.println("");
+	Com.println("");
 }
 
