@@ -15,6 +15,7 @@
 matrix::matrix(){
 
 	m_matrix = NULL;
+	m_matrix_float = NULL;
 	m_rows = 0;
 	m_columns = 0;
 
@@ -24,6 +25,7 @@ matrix::matrix(){
 matrix::matrix(int p_rows, int p_columns){
 
 	m_matrix = NULL;
+	m_matrix_float = NULL;
 	init(p_rows, p_columns);
 
 }
@@ -32,6 +34,7 @@ matrix::matrix(int p_rows, int p_columns){
 matrix::matrix(int p_rows, int p_columns, int p_fill){
 
 	m_matrix = NULL;
+	m_matrix_float = NULL;
 	init(p_rows, p_columns, p_fill);
 
 }
@@ -54,6 +57,7 @@ void matrix::init(int p_rows, int p_columns){
 	m_columns = p_columns;
 	m_inv_denom = 0;
 	m_det_defined = false;
+	m_is_float = false;
 	
 	// Allocate memory for new matrix
 	m_matrix = new int*[m_rows];
@@ -75,24 +79,50 @@ void matrix::init(int p_rows, int p_columns, int p_fill){
 
 }
 
+void matrix::initFloat(int p_rows, int p_columns){
+	// Make sure any existing matrix is cleared first
+	deleteMatrix();
+
+	m_rows = p_rows;
+	m_columns = p_columns;
+	m_inv_denom = 0;
+	m_det_defined = false;
+	m_is_float = true;
+
+	// Allocate memory for new matrix
+	m_matrix = new int*[m_rows];
+	for (int i = 0; i < m_rows; i++)
+		m_matrix[i] = new int[m_columns];
+}
+
 /*** Private ***/
 
 // Deallocates the memory for the object matrix
 void matrix::deleteMatrix() {
 
-	// If the m_matrix pointer is null, then
+	// If the matrixs pointers are null, then
 	// don't delete it, since there isn't any
 	// memory to deallocate.
-	if (m_matrix == NULL)
-		return;
+	
+	if (m_matrix != NULL){
+		for (byte i = 0; i < m_columns; i++){
+			delete[] m_matrix[i];
+		}
+		delete[] m_matrix;
 
-	for (byte i = 0; i < m_columns; i++){
-		delete[] m_matrix[i];
+		// Re-set m_matrix as null pointer
+		m_matrix = NULL;
 	}
-	delete[] m_matrix;
 
-	// Re-set m_matrix as null pointer
-	m_matrix = NULL;
+	if (m_matrix_float != NULL){
+		for (byte i = 0; i < m_columns; i++){
+			delete[] m_matrix_float[i];
+		}
+		delete[] m_matrix_float;
+
+		// Re-set m_matrix_float as null pointer
+		m_matrix_float = NULL;
+	}
 }
 
 
@@ -115,6 +145,51 @@ int matrix::setValue(int p_row, int p_column, int p_value) {
 
 	// Determinant is no longer defined
 	m_det_defined = false;
+}
+
+// Set the elements of the matrix with values from a 1D array. Will partially populate matrix if there are not enough values.
+int matrix::setValues(int* p_value, int p_count){
+
+	int i = 0;
+
+	for (byte r = 0; r < m_rows; r++){
+		for (byte c = 0; c < m_columns; c++){
+			m_matrix[r][c] = p_value[i];
+			i++;
+			// If we're out of values to populate with, exit the function
+			if (i == p_count)
+				return -1;
+		}
+	}
+
+	return 0;
+}
+
+int matrix::setPointConstants(int* p_value, int p_point_count){
+
+	// Make sure matrix is the correct size; if not, reinitialize it
+	if (m_rows != (p_point_count - 2) || m_columns != 2)
+		init(p_point_count - 2, 2);
+
+	int i = 2;									// Start counting from second available point
+	for (byte r = 0; r < m_rows; r++){
+		for (byte c = 0; c < m_columns; c++){
+			// First row
+			if (r == 0){
+				m_matrix[r][c] = 6 * p_value[i] - p_value[i-2];
+			}
+			// Last row
+			else if (r == p_point_count - 3){
+				m_matrix[r][c] = 6 * p_value[i] - p_value[i + 2];
+			}
+			// All other rows
+			else
+				m_matrix[r][c] = 6 * p_value[i];
+			// Move to array element
+			i++;
+		}
+	}
+
 }
 
 // Sets 4s down matrix diagonal with 1s on either side of 4s
@@ -267,7 +342,7 @@ void matrix::getRow(int p_row, matrix& p_vector) {
 
 /*** Public ***/
 
-// [A] + [B] = [target]
+// [target] = [A] + [B]
 int matrix::add(const matrix& p_A, const matrix& p_B, matrix& p_target){
 
 	// Return error code if matrix sizes do not match
@@ -286,7 +361,7 @@ int matrix::add(const matrix& p_A, const matrix& p_B, matrix& p_target){
 	return 0;
 }
 
-// [A] + int = [target]
+// [target] = [A] + int
 void matrix::add(const matrix& p_A, int p_const, matrix& p_target){
 
 	// If the target matrix is not the correct size, reinitialize it
@@ -305,7 +380,7 @@ void matrix::add(const matrix& p_A, int p_const, matrix& p_target){
 
 }
 
-// [A] - [B] = [target]
+// [target] = [A] - [B]
 int matrix::subtract(const matrix& p_A, const matrix& p_B, matrix& p_target){
 
 	// Return error code if matrix sizes do not match
@@ -323,7 +398,7 @@ int matrix::subtract(const matrix& p_A, const matrix& p_B, matrix& p_target){
 	return 0;
 }
 
-// [A] - int = [target]
+// [target] = [A] - int
 void matrix::subtract(const matrix& p_A, int p_const, matrix& p_target){
 
 	// If the target matrix is not the correct size, reinitialize it
@@ -340,39 +415,40 @@ void matrix::subtract(const matrix& p_A, int p_const, matrix& p_target){
 
 }
 
-// [A] * [B] = [target]
+// [target] = [A] * [B]
 int matrix::mult(const matrix& p_A, const matrix& p_B, matrix& p_target){
 	
 	// Return error code if [A] column count does not match [B] row count
-	if (p_A.m_rows != p_B.m_columns)
+	if (p_A.m_columns != p_B.m_rows){
+		Com.println("Cannot multiply these matricies!");
 		return -1;
+	}
 
 	// If the target matrix is not the correct size, reinitialize it
 	if (p_target.m_rows != p_A.m_rows || p_target.m_columns != p_B.m_columns)
 		p_target.init(p_A.m_rows, p_B.m_columns);
 
-	int product = 0;
-	int target_r = 0;
-	int target_c = 0;
-
-	for (byte i = 0; i < p_target.m_rows; i++) {
-		for (byte j = 0; j < p_target.m_columns; j++) {
+	for (byte r = 0; r < p_target.m_rows; r++) {
+		for (byte c = 0; c < p_target.m_columns; c++) {
 			int product = 0;
 			for (byte k = 0; k < p_A.m_columns; k++) {
-				product += p_A.m_matrix[i][k] * p_B.m_matrix[k][j];
+				product += p_A.m_matrix[r][k] * p_B.m_matrix[k][c];
 			}
-			p_target.m_matrix[i][j] = product;
+			p_target.m_matrix[r][c] = product;
 		}
 	}
 	
+	// If the [A] matrix is an inverse, divide the target by [A] inverse denominator
+	if (p_A.m_inv_denom != 0)
+		p_target.divideScalar(p_A.m_inv_denom);
 	// If the [B] matrix is an inverse, divide the target by [B] inverse denominator
 	if (p_B.m_inv_denom != 0)
-		p_target.divideScalar(p_B.m_inv_denom);
+		p_target.divideScalar(p_B.m_inv_denom);		
 
 	return 0;
 }
 
-// [A] * int = [target]
+// [target]  = [A] * int
 void matrix::mult(int p_const, const matrix& p_A, matrix& p_target){
 
 	// If the target matrix is not the correct size, reinitialize it
@@ -471,7 +547,7 @@ int matrix::determinant(const matrix& p_matrix){
 	}
 }
 
-// transpose[A] = [target]
+// [target] = transpose[A]
 void matrix::transpose(const matrix& p_matrix, matrix& p_target) {
 	
 	// If the target isn't the correct size, reinitialize it
@@ -500,8 +576,10 @@ int matrix::inverse(const matrix& p_matrix, matrix& p_target){
 
 	// Save the determinant of the original matrix as the inverse element denominator 
 	// Use the precalculated determinant, if available
-	if (p_matrix.m_det_defined)
+	if (p_matrix.m_det_defined){
+
 		p_target.m_inv_denom = p_matrix.m_det;
+	}
 	// Otherwise, calculate the determinant
 	else
 		p_target.m_inv_denom = determinant(p_matrix);
@@ -654,6 +732,8 @@ void matrix::print(){
 		// Move to the next row
 		Com.println("");
 	}
+	// Add a blank line
+	Com.println("");
 }
 
 // Prints specified row

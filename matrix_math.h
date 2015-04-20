@@ -16,15 +16,18 @@ public:
 
 	// Constructors, destructors, init, and memory management
 	matrix();																				// Creates a matrix object of undifined size
-	matrix(int p_rows, int p_columns);														// Creates a matrix object of size p_rows x p_columns 
+	matrix(int p_rows, int p_columns);														// Creates a matrix object of size p_rows x p_columns. If p_float is true, will initialize a float matrix. p_float = false by default. 
 	matrix(int p_rows, int p_columns, int p_fill);											// Creates a matrix object of size p_rows x p_columns and populates every element with p_fill
 	~matrix();																				// Default destructor
 	void init(int p_rows, int p_columns);													// Initializes matrix of size p_rows x p_columns
 	void init(int p_rows, int p_columns, int p_fill);										// Initializes matrix of size p_rows x p_columns filled with p_fill
+	void initFloat(int p_rows, int p_columns);												// Initalizess float matrix of size p_rows x p_columns
 
 	// Set functions	
 	int setValue(int p_row, int p_column, int p_value);										// Set the value of the specified matrix element. Return an error code if an invalid position is given
+	int setValues(int* p_value, int p_count);												// Set matrix elements with values from 1D array
 	void set141();																			// Sets 4s down matrix diagonal with 1s on either side of 4s
+	int setPointConstants(int* p_value, int p_point_count);									// Sets the "C" matrix of size (p_point_count - 2) x 2
 
 	// Get functions
 	int rowCount();																			// Returns the number of rows in the matrix
@@ -54,12 +57,14 @@ public:
 private:
 
 	// Variables
-	int**		m_matrix;																	// Double pointer that will become a dynamically allocated 2D matrix
+	int**		m_matrix;																	// Double pointer that will become a dynamically allocated 2D int matrix
+	float**		m_matrix_float;																// Double pointer that will become a dynamically allocated 2D float matrix
 	int			m_rows;																		// Number of rows in the matrix
 	int			m_columns;																	// Number of columns in the matrix
 	int			m_inv_denom;																// Denominator of inverse matrix element values
 	int			m_det;																		// Determinant of the matrix
 	bool		m_det_defined;																// Flag indicating whether the determinant has been calculated for the matrix yet
+	bool		m_is_float;																	// Indicates whether this object holds a float matrix
 
 	// Functions
 	void		deleteMatrix();																// Clears the memory allocated for the matrix object and points it to NULL
@@ -71,6 +76,9 @@ private:
 	void		divideScalar(int);															// Divides the matrix by a scalar
 	int			transposeInPlace();															// Transposes a matrix in place. Can only be performed on square matricies
 	int			cofactorMatrix(matrix& p_target) const;										// Creates cofactor matrix in target object
+	void		allocateInt(int p_rows, int p_columns);										// Allocates memory for integer matrix
+	void		allocateFloat(int p_rows, int p_columns);									// Allocates memory for float matrix
+	
 };
 
 #endif
