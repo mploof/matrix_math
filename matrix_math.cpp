@@ -15,7 +15,6 @@
 matrix::matrix(){
 
 	m_matrix = NULL;
-	m_matrix_float = NULL;
 	m_rows = 0;
 	m_columns = 0;
 
@@ -25,7 +24,6 @@ matrix::matrix(){
 matrix::matrix(int p_rows, int p_columns){
 
 	m_matrix = NULL;
-	m_matrix_float = NULL;
 	init(p_rows, p_columns);
 
 }
@@ -34,7 +32,6 @@ matrix::matrix(int p_rows, int p_columns){
 matrix::matrix(int p_rows, int p_columns, int p_fill){
 
 	m_matrix = NULL;
-	m_matrix_float = NULL;
 	init(p_rows, p_columns, p_fill);
 
 }
@@ -79,22 +76,6 @@ void matrix::init(int p_rows, int p_columns, int p_fill){
 
 }
 
-void matrix::initFloat(int p_rows, int p_columns){
-	// Make sure any existing matrix is cleared first
-	deleteMatrix();
-
-	m_rows = p_rows;
-	m_columns = p_columns;
-	m_inv_denom = 0;
-	m_det_defined = false;
-	m_is_float = true;
-
-	// Allocate memory for new matrix
-	m_matrix = new int*[m_rows];
-	for (int i = 0; i < m_rows; i++)
-		m_matrix[i] = new int[m_columns];
-}
-
 /*** Private ***/
 
 // Deallocates the memory for the object matrix
@@ -112,16 +93,6 @@ void matrix::deleteMatrix() {
 
 		// Re-set m_matrix as null pointer
 		m_matrix = NULL;
-	}
-
-	if (m_matrix_float != NULL){
-		for (byte i = 0; i < m_columns; i++){
-			delete[] m_matrix_float[i];
-		}
-		delete[] m_matrix_float;
-
-		// Re-set m_matrix_float as null pointer
-		m_matrix_float = NULL;
 	}
 }
 
@@ -705,11 +676,22 @@ bool matrix::sizeMatch(const matrix& p_A, const matrix& p_B){
 void matrix::print(String p_name){
 	Com.println("");
 	Com.println(p_name);
-	matrix::print();
+	matrix::print(false);
 }
 
 // Prints the entire matrix
-void matrix::print(){
+void matrix::print(bool p_processing){
+
+	if (p_processing){
+		for (byte r = 0; r < rowCount(); r++) {
+			for (byte c = 0; c < colCount(); c++) {
+				Com.println(m_matrix[r][c]);
+			}
+		}
+		Com.println(5555);
+		return;
+	}
+
 	for (byte r = 0; r < rowCount(); r++) {
 		for (byte c = 0; c < colCount(); c++) {
 			

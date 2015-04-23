@@ -16,12 +16,11 @@ public:
 
 	// Constructors, destructors, init, and memory management
 	matrix();																				// Creates a matrix object of undifined size
-	matrix(int p_rows, int p_columns);														// Creates a matrix object of size p_rows x p_columns. If p_float is true, will initialize a float matrix. p_float = false by default. 
+	matrix(int p_rows, int p_columns);														// Creates a matrix object of size p_rows x p_columns.
 	matrix(int p_rows, int p_columns, int p_fill);											// Creates a matrix object of size p_rows x p_columns and populates every element with p_fill
 	~matrix();																				// Default destructor
 	void init(int p_rows, int p_columns);													// Initializes matrix of size p_rows x p_columns
 	void init(int p_rows, int p_columns, int p_fill);										// Initializes matrix of size p_rows x p_columns filled with p_fill
-	void initFloat(int p_rows, int p_columns);												// Initalizess float matrix of size p_rows x p_columns
 
 	// Set functions	
 	int setValue(int p_row, int p_column, int p_value);										// Set the value of the specified matrix element. Return an error code if an invalid position is given
@@ -50,7 +49,7 @@ public:
 
 	// Print functions
 	void print(String);																		// Prints the entire matrix with name header
-	void print();																			// Prints the entire matrix
+	void print(bool p_processing);															// Prints the entire matrix
 	void printRow(int);																		// Prints specified row
 	void printCol(int);																		// Prints specified column
 
@@ -58,7 +57,6 @@ private:
 
 	// Variables
 	int**		m_matrix;																	// Double pointer that will become a dynamically allocated 2D int matrix
-	float**		m_matrix_float;																// Double pointer that will become a dynamically allocated 2D float matrix
 	int			m_rows;																		// Number of rows in the matrix
 	int			m_columns;																	// Number of columns in the matrix
 	int			m_inv_denom;																// Denominator of inverse matrix element values
@@ -76,8 +74,6 @@ private:
 	void		divideScalar(int);															// Divides the matrix by a scalar
 	int			transposeInPlace();															// Transposes a matrix in place. Can only be performed on square matricies
 	int			cofactorMatrix(matrix& p_target) const;										// Creates cofactor matrix in target object
-	void		allocateInt(int p_rows, int p_columns);										// Allocates memory for integer matrix
-	void		allocateFloat(int p_rows, int p_columns);									// Allocates memory for float matrix
 	
 };
 
