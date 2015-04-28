@@ -54,7 +54,6 @@ void matrix::init(int p_rows, int p_columns){
 	m_columns = p_columns;
 	m_inv_denom = 0;
 	m_det_defined = false;
-	m_is_float = false;
 	
 	// Allocate memory for new matrix
 	m_matrix = new int*[m_rows];
@@ -254,6 +253,22 @@ int matrix::appendCol(const matrix& p_column_vector) {
 	m_det_defined = false;
 }
 
+// Copies source matrix into current matrix
+void matrix::copy(const matrix& p_source){
+
+	// Resize matrix if it doesn't match the source
+	if (!sizeMatch(p_source))
+		this->init(p_source.rowCount(), p_source.colCount());
+
+	// Copy data from source
+	for (byte r = 0; r < m_rows; r++){
+		for (byte c = 0; c < m_columns; c++){
+			this->m_matrix[r][c] = p_source.m_matrix[r][c];
+		}
+	}
+
+}
+
 
 /*********************************
 
@@ -264,12 +279,12 @@ int matrix::appendCol(const matrix& p_column_vector) {
 /*** Public ***/
 
 // Returns the number of rows in the matrix
-int matrix::rowCount(){
+int matrix::rowCount() const {
 	return m_rows;
 }
 
 // Returns the number of columns in the matrix
-int matrix::colCount(){
+int matrix::colCount() const {
 	return m_columns;
 }
 
@@ -673,7 +688,11 @@ bool matrix::sizeMatch(const matrix& p_A, const matrix& p_B){
 /*** Public ***/
 
 // Prints the entire matrix with name header
-void matrix::print(String p_name){
+void matrix::print(String p_name, bool p_processing){
+
+	if (p_processing)
+		matrix::print(true);
+
 	Com.println("");
 	Com.println(p_name);
 	matrix::print(false);
@@ -738,3 +757,156 @@ void matrix::printCol(int p_column){
 	Com.println("");
 }
 
+/*************************************************************************/
+/************************* floatMatrix Functions *************************/
+/*************************************************************************/
+
+// Default constructor
+floatMatrix::floatMatrix(){
+
+	m_matrix = NULL;
+	m_rows = 0;
+	m_columns = 0;
+
+}
+
+// Default destructor
+floatMatrix::~floatMatrix() {
+
+	// Make sure matrix memory is deallocated
+	// before destructing the objects
+	deleteMatrix();
+}
+
+// Constructor that initializes matrix with size p_rows x p_columns
+floatMatrix::floatMatrix(int p_rows, int p_columns){
+
+	m_matrix = NULL;
+	init(p_rows, p_columns);
+
+}
+
+// Initialize matrix with size p_rows x p_columns
+void floatMatrix::init(int p_rows, int p_columns){
+
+	// Make sure any existing matrix is cleared first
+	deleteMatrix();
+
+	m_rows = p_rows;
+	m_columns = p_columns;
+
+	// Allocate memory for new matrix
+	m_matrix = new float*[m_rows];
+	for (int i = 0; i < m_rows; i++)
+		m_matrix[i] = new float[m_columns];
+}
+
+// Deallocates the memory for the object matrix
+void floatMatrix::deleteMatrix() {
+
+	// If the matrixs pointers are null, then
+	// don't delete it, since there isn't any
+	// memory to deallocate.
+
+	if (m_matrix != NULL){
+		for (byte i = 0; i < m_columns; i++){
+			delete[] m_matrix[i];
+		}
+		delete[] m_matrix;
+
+		// Re-set m_matrix as null pointer
+		m_matrix = NULL;
+	}
+}
+
+// Copies source matrix into current matrix
+void floatMatrix::copy(const floatMatrix& p_source){
+
+	// Resize matrix if it doesn't match the source
+	if (!sizeMatch(p_source))
+		this->init(p_source.rowCount(), p_source.colCount());
+
+	// Copy data from source
+	for (byte r = 0; r < m_rows; r++){
+		for (byte c = 0; c < m_columns; c++){
+			this->m_matrix[r][c] = p_source.m_matrix[r][c];
+		}
+	}
+}
+
+// Checks whether current matrix object and target have matching dimensions
+bool floatMatrix::sizeMatch(const floatMatrix& p_B) const {
+	if (this->m_columns == p_B.m_columns && this->m_rows == p_B.m_rows)
+		return true;
+	else
+		return false;
+}
+
+// Set the value of the specified matrix element. Return an error code if an invalid position is given
+int floatMatrix::setValue(int p_row, int p_column, float p_value) {
+
+	// Don't allow setting value outside established matrix size
+	if (p_row >= m_rows || p_column >= m_columns || p_row < 0 || p_column < 0)
+		return -1;
+
+	m_matrix[p_row][p_column] = p_value;
+}
+
+// Returns the number of rows in the matrix
+int floatMatrix::rowCount() const {
+	return m_rows;
+}
+
+// Returns the number of columns in the matrix
+int floatMatrix::colCount() const {
+	return m_columns;
+}
+
+// Returns the value of the specified element
+int floatMatrix::getValue(int p_row, int p_column) {
+	return m_matrix[p_row][p_column];
+}
+
+// Prints the entire matrix with name header
+void floatMatrix::print(String p_name, bool p_processing){
+
+	if (p_processing)
+		floatMatrix::print(true);
+
+	Com.println("");
+	Com.println(p_name);
+	floatMatrix::print(false);
+}
+
+// Prints the entire matrix
+void floatMatrix::print(bool p_processing){
+
+	if (p_processing){
+		for (byte r = 0; r < rowCount(); r++) {
+			for (byte c = 0; c < colCount(); c++) {
+				Com.println(m_matrix[r][c]);
+			}
+		}
+		Com.println(5555);
+		return;
+	}
+
+	for (byte r = 0; r < rowCount(); r++) {
+		for (byte c = 0; c < colCount(); c++) {
+
+			// If this element is positive, print an extra space to align it with negative values
+			if (m_matrix[r][c] >= 0)
+				Com.print(" ");
+
+			// Print the element
+			Com.print(m_matrix[r][c]);
+
+			// Print a tab for spacing
+			Com.print("\t");
+		}
+		// Move to the next row
+		Com.println("");
+	}
+	// Add a blank line
+	Com.println("");
+}

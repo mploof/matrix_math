@@ -27,10 +27,11 @@ public:
 	int setValues(int* p_value, int p_count);												// Set matrix elements with values from 1D array
 	void set141();																			// Sets 4s down matrix diagonal with 1s on either side of 4s
 	int setPointConstants(int* p_value, int p_point_count);									// Sets the "C" matrix of size (p_point_count - 2) x 2
+	void copy(const matrix& p_source);														// Copies source matrix into current matrix
 
 	// Get functions
-	int rowCount();																			// Returns the number of rows in the matrix
-	int colCount();																			// Returns the number of columns in the matrix
+	int rowCount() const;																	// Returns the number of rows in the matrix
+	int colCount() const;																	// Returns the number of columns in the matrix
 	int getValue(int, int);																	// Returns the value of the specified element
 	void getRow(int p_row, matrix& p_row_vector);											// Sets n x 1 input vector as specified column
 	void getColumn(int p_column, matrix& p_column_vector);									// Sets 1 x n input vector as specified row
@@ -48,7 +49,7 @@ public:
 	static int		inverse(const matrix& p_matrix, matrix& p_target);
 
 	// Print functions
-	void print(String);																		// Prints the entire matrix with name header
+	void print(String, bool p_processing);													// Prints the entire matrix with name header
 	void print(bool p_processing);															// Prints the entire matrix
 	void printRow(int);																		// Prints specified row
 	void printCol(int);																		// Prints specified column
@@ -62,7 +63,6 @@ private:
 	int			m_inv_denom;																// Denominator of inverse matrix element values
 	int			m_det;																		// Determinant of the matrix
 	bool		m_det_defined;																// Flag indicating whether the determinant has been calculated for the matrix yet
-	bool		m_is_float;																	// Indicates whether this object holds a float matrix
 
 	// Functions
 	void		deleteMatrix();																// Clears the memory allocated for the matrix object and points it to NULL
@@ -75,6 +75,43 @@ private:
 	int			transposeInPlace();															// Transposes a matrix in place. Can only be performed on square matricies
 	int			cofactorMatrix(matrix& p_target) const;										// Creates cofactor matrix in target object
 	
+};
+
+class floatMatrix {
+
+public:
+
+	// Constructors, destructors, init, and memory management
+	floatMatrix();													// Creates a matrix object of undifined size
+	floatMatrix(int p_rows, int p_columns);							// Creates a matrix object of size p_rows x p_columns.
+	~floatMatrix();													// Default destructor
+	void init(int p_rows, int p_columns);							// Initializes matrix of size p_rows x p_columns
+	
+	// Set functions	
+	int setValue(int p_row, int p_column, float p_value);			// Set the value of the specified matrix element. Return an error code if an invalid position is given
+	int setValues(int* p_value, int p_count);						// Set matrix elements with values from 1D array
+	void copy(const floatMatrix& p_source);							// Copies source matrix into current matrix
+
+	// Get functions
+	int rowCount() const;											// Returns the number of rows in the matrix
+	int colCount() const;											// Returns the number of columns in the matrix
+	int getValue(int, int);											// Returns the value of the specified element
+
+	// Print functions
+	void print(String, bool p_processing);							// Prints the entire matrix with name header
+	void print(bool p_processing);									// Prints the entire matrix
+
+private:
+
+	// Variables
+	float**		m_matrix;											// Double pointer that will become a dynamically allocated 2D int matrix
+	int			m_rows;												// Number of rows in the matrix
+	int			m_columns;											// Number of columns in the matrix
+
+	// Functions
+	bool		sizeMatch(const floatMatrix&) const;				// Checks whether current matrix object and target have matching dimensions
+	void		deleteMatrix();										// Clears the memory allocated for the matrix object and points it to NULL
+
 };
 
 #endif
