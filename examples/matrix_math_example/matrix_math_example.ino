@@ -1,44 +1,89 @@
 #include "Arduino.h"
 #include "matrix_math.h"
+#include "spline_calc.h"
+
+
+
+Spline spline;
 
 void setup() {
-	Com.begin(9600);
+	Serial.begin(9600);
 
-	int determinant = 0;
-	
-	matrix m(3, 3, 1);
-	m.setValue(0, 1, 2);
-	m.setValue(0, 2, 0);
-	m.setValue(1, 0, -1);
-	m.setValue(2, 1, 2);
-	m.setValue(2, 2, 3);
-	m.print("m Matrix");
-	Com.println("");
-	matrix i;
-	matrix::inverse(m, i);
-	i.print("Inverse matrix");
-	matrix target;
-	matrix::mult(m, i, target);
-	target.print("Identity matrix?");
+	int points[] = {
+		-9,  0,
+		-8,  3,
+		-5,  4,
+		 0,  3,
+		 2,  4,
+		 4,  3,
+		 7,  5
+	};
 
 	
+	spline.setInterpPts(points, 7);
+
 	
+	int curve_points = 50;
+	spline.getCurvePts(curve_points);
+
+
+	// Send code to indicate Arduino is ready to send data
+	//Serial.print(1);
+
+	//spline.printCurvePts(true);
 }
 
 void loop() {
 
+	// Wait till a command is received
+	if (Serial.available() > 0){
+		
+		char val = Serial.read();
+
+		// Flush the serial buffer
+		while (Serial.available()){
+			Serial.read();
+		}
+
+		switch (val) {
+			case '1':
+			{
+				spline.printInterpPts();
+				blink(1);
+				break;
+			}
+			case '2':
+			{
+				spline.printCtrlPts();
+				blink(2);
+				break;
+			}
+			case '3':
+			{
+				spline.printCurvePts();
+				blink(3);
+				break;
+			}
+			default:
+				break;
+		}		
+		
+		// Flush the serial buffer
+		while (Serial.available()){
+			Serial.read();
+		}
+		
+	}
+
+	// Delay between checks of the serial buffer
+	delay(10);
 }
 
-int determ(matrix& p_input){
-	//Com.println("Current matrix");
-	//p_input.print();
-	Com.println("");
-	unsigned long time;
-	time = micros();
-	int deter = matrix::determinant(p_input);
-	time = micros() - time;
-	Com.print("Order ");
-	Com.println(p_input.colCount());
-	Com.print("Determinant = ");
-	Com.println(deter);	
+void blink(int p_count){
+	for (byte i = 0; i < p_count; i++){
+		digitalWrite(13, HIGH);
+		delay(100);
+		digitalWrite(13, LOW);
+		delay(100);
+	}
 }
