@@ -17,6 +17,7 @@ matrix::matrix(){
 	m_matrix = NULL;
 	m_rows = 0;
 	m_columns = 0;
+	m_nID = generateID();
 
 }
 
@@ -24,24 +25,31 @@ matrix::matrix(){
 matrix::matrix(int p_rows, int p_columns){
 
 	m_matrix = NULL;
+	m_nID = generateID();
 	init(p_rows, p_columns);
 
 }
 
 // Constructor that initializes matrix with size p_rows x p_columns, where all elements = p_fill
 matrix::matrix(int p_rows, int p_columns, float p_fill){
-
+	
 	m_matrix = NULL;
+	m_nID = generateID();
 	init(p_rows, p_columns, p_fill);
 
 }
 
 // Default destructor
 matrix::~matrix() {
-
 	// Make sure matrix memory is deallocated
 	// before destructing the objects
 	deleteMatrix();
+}
+
+int matrix::generateID(){
+	static int n_ID = 0;
+	n_ID++;
+	return n_ID;
 }
 
 // Initialize matrix with size p_rows x p_columns
@@ -49,12 +57,12 @@ void matrix::init(int p_rows, int p_columns){
 
 	// Make sure any existing matrix is cleared first
 	deleteMatrix();
-	
+
 	m_rows = p_rows;
 	m_columns = p_columns;
 	m_inv_denom = 0;
 	m_det_defined = false;
-	
+
 	// Allocate memory for new matrix
 	m_matrix = new float*[m_rows];
 	for (int i = 0; i < m_rows; i++)
@@ -85,6 +93,7 @@ void matrix::deleteMatrix() {
 	// memory to deallocate.
 	
 	if (m_matrix != NULL){
+
 		for (byte i = 0; i < m_columns; i++){
 			delete[] m_matrix[i];
 		}
@@ -93,6 +102,7 @@ void matrix::deleteMatrix() {
 		// Re-set m_matrix as null pointer
 		m_matrix = NULL;
 	}
+
 }
 
 
@@ -612,7 +622,7 @@ int matrix::cofactorMatrix(matrix& p_target) const {
 
 	float det = 0;
 
-	// Hold the adjofloat matricies
+	// Hold the adjoint matricies
 	matrix c(n - 1, n - 1);
 
 	int i1 = 0;
