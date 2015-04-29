@@ -29,7 +29,7 @@ matrix::matrix(int p_rows, int p_columns){
 }
 
 // Constructor that initializes matrix with size p_rows x p_columns, where all elements = p_fill
-matrix::matrix(int p_rows, int p_columns, int p_fill){
+matrix::matrix(int p_rows, int p_columns, float p_fill){
 
 	m_matrix = NULL;
 	init(p_rows, p_columns, p_fill);
@@ -56,13 +56,13 @@ void matrix::init(int p_rows, int p_columns){
 	m_det_defined = false;
 	
 	// Allocate memory for new matrix
-	m_matrix = new int*[m_rows];
+	m_matrix = new float*[m_rows];
 	for (int i = 0; i < m_rows; i++)
-		m_matrix[i] = new int[m_columns];
+		m_matrix[i] = new float[m_columns];
 }
 
 // Initialize matrix with size p_rows x p_columns, where all elements = p_fill
-void matrix::init(int p_rows, int p_columns, int p_fill){
+void matrix::init(int p_rows, int p_columns, float p_fill){
 
 	init(p_rows, p_columns);
 
@@ -105,7 +105,7 @@ void matrix::deleteMatrix() {
 /*** Public ***/
 
 // Set the value of the specified matrix element. Return an error code if an invalid position is given
-int matrix::setValue(int p_row, int p_column, int p_value) {
+int matrix::setValue(int p_row, int p_column, float p_value) {
 	
 	// Don't allow setting value outside established matrix size
 	if (p_row >= m_rows || p_column >= m_columns || p_row < 0 || p_column < 0)
@@ -118,7 +118,7 @@ int matrix::setValue(int p_row, int p_column, int p_value) {
 }
 
 // Set the elements of the matrix with values from a 1D array. Will partially populate matrix if there are not enough values.
-int matrix::setValues(int* p_value, int p_count){
+int matrix::setValues(float* p_value, int p_count){
 
 	int i = 0;
 
@@ -135,7 +135,7 @@ int matrix::setValues(int* p_value, int p_count){
 	return 0;
 }
 
-int matrix::setPointConstants(int* p_value, int p_point_count){
+int matrix::setPointConstants(float* p_value, float p_point_count){
 
 	// Make sure matrix is the correct size; if not, reinitialize it
 	if (m_rows != (p_point_count - 2) || m_columns != 2)
@@ -190,7 +190,7 @@ int matrix::appendRow(const matrix& p_row_vector) {
 	if (p_row_vector.m_rows != 1 || p_row_vector.m_columns != this->m_columns)
 		return -1;
 
-	int new_rows = m_rows + 1;
+	float new_rows = m_rows + 1;
 
 	// Create a temporary matrix
 	matrix temp(new_rows, m_columns);
@@ -225,7 +225,7 @@ int matrix::appendCol(const matrix& p_column_vector) {
 	if (p_column_vector.m_columns != 1 || p_column_vector.m_rows != this->m_rows)
 		return -1;
 	
-	int new_columns = m_columns + 1;
+	float new_columns = m_columns + 1;
 
 	// Create a temporary matrix
 	matrix temp(m_rows, new_columns);
@@ -289,7 +289,7 @@ int matrix::colCount() const {
 }
 
 // Returns the value of the specified element
-int matrix::getValue(int p_row, int p_column) {
+float matrix::getValue(int p_row, int p_column) {
 	return m_matrix[p_row][p_column];
 }
 
@@ -348,7 +348,7 @@ int matrix::add(const matrix& p_A, const matrix& p_B, matrix& p_target){
 }
 
 // [target] = [A] + int
-void matrix::add(const matrix& p_A, int p_const, matrix& p_target){
+void matrix::add(const matrix& p_A, float p_const, matrix& p_target){
 
 	// If the target matrix is not the correct size, reinitialize it
 	// This also avoids reinitializing [A] if it is also being used as the target
@@ -385,7 +385,7 @@ int matrix::subtract(const matrix& p_A, const matrix& p_B, matrix& p_target){
 }
 
 // [target] = [A] - int
-void matrix::subtract(const matrix& p_A, int p_const, matrix& p_target){
+void matrix::subtract(const matrix& p_A, float p_const, matrix& p_target){
 
 	// If the target matrix is not the correct size, reinitialize it
 	// This also avoids reinitializing [A] if it is also being used as the target
@@ -416,7 +416,7 @@ int matrix::mult(const matrix& p_A, const matrix& p_B, matrix& p_target){
 
 	for (byte r = 0; r < p_target.m_rows; r++) {
 		for (byte c = 0; c < p_target.m_columns; c++) {
-			int product = 0;
+			float product = 0;
 			for (byte k = 0; k < p_A.m_columns; k++) {
 				product += p_A.m_matrix[r][k] * p_B.m_matrix[k][c];
 			}
@@ -435,7 +435,7 @@ int matrix::mult(const matrix& p_A, const matrix& p_B, matrix& p_target){
 }
 
 // [target]  = [A] * int
-void matrix::mult(int p_const, const matrix& p_A, matrix& p_target){
+void matrix::mult(float p_const, const matrix& p_A, matrix& p_target){
 
 	// If the target matrix is not the correct size, reinitialize it
 	// This also avoids reinitializing [A] if it is also being used as the target
@@ -465,8 +465,8 @@ int matrix::determinant(const matrix& p_matrix){
 	if (p_matrix.m_det_defined)
 		return p_matrix.m_det;
 
-	int det = 0;	// Determinant value
-	int n = 0;		// Matrix order
+	float det = 0;	// Determinant value
+	float n = 0;		// Matrix order
 
 	// Is the matrix square? If not we cannot find the determinant, so bail
 	if (p_matrix.isSquare() == false)
@@ -494,7 +494,7 @@ int matrix::determinant(const matrix& p_matrix){
 		for (byte i = 0; i < n; i++){
 
 			// Save the row 0 value of the current column as the coefficient of the minor
-			int minor_coeff = p_matrix.m_matrix[0][i];
+			float minor_coeff = p_matrix.m_matrix[0][i];
 
 			// Create minor of order n - 1
 			matrix minor(n - 1, n - 1);
@@ -554,8 +554,6 @@ int matrix::inverse(const matrix& p_matrix, matrix& p_target){
 	if (p_matrix.isSquare() == false)
 		return -1;
 
-	int err = 0;
-
 	// Create the cofactor matrix and transpose it
 	p_matrix.cofactorMatrix(p_target);
 	p_target.transposeInPlace();
@@ -582,7 +580,7 @@ int matrix::transposeInPlace(){
 	if (isSquare() == false)
 		return -1;
 
-	int temp = 0;
+	float temp = 0;
 
 	for (byte r = 1; r < m_rows; r++) {
 		for (byte c = 0; c < r; c++) {
@@ -606,15 +604,15 @@ int matrix::cofactorMatrix(matrix& p_target) const {
 		return -1;
 
 	// Set the matrix order
-	int n = this->m_rows;
+	float n = this->m_rows;
 
 	// If the target isn't the correct size, reinitialize it
 	if (sizeMatch(p_target) == false)
 		p_target.init(n, n);
 
-	int det = 0;
+	float det = 0;
 
-	// Hold the adjoint matricies
+	// Hold the adjofloat matricies
 	matrix c(n - 1, n - 1);
 
 	int i1 = 0;
@@ -622,7 +620,7 @@ int matrix::cofactorMatrix(matrix& p_target) const {
 	for (byte j = 0; j < n; j++) {
 		for (byte i = 0; i < n; i++) {
 
-			/* Form the adjoint a_ij */
+			/* Form the adjofloat a_ij */
 			i1 = 0;
 			for (byte ii = 0; ii<n; ii++) {
 				if (ii == i)
@@ -681,27 +679,28 @@ bool matrix::sizeMatch(const matrix& p_A, const matrix& p_B){
 
 /*********************************
 
-		Print Functions
+		Prfloat Functions
 
 **********************************/
 
 /*** Public ***/
 
 // Prints the entire matrix with name header
-void matrix::print(String p_name, bool p_processing){
-
-	if (p_processing)
-		matrix::print(true);
+void matrix::print(String p_name){
 
 	Com.println("");
 	Com.println(p_name);
-	matrix::print(false);
+	matrix::print(true, false);
+}
+
+void matrix::print(){
+	matrix::print(false, true);
 }
 
 // Prints the entire matrix
-void matrix::print(bool p_processing){
+void matrix::print(bool p_monitor, bool p_processing){
 
-	if (p_processing){
+	if (p_monitor == 0){
 		for (byte r = 0; r < rowCount(); r++) {
 			for (byte c = 0; c < colCount(); c++) {
 				Com.println(m_matrix[r][c]);
@@ -714,20 +713,20 @@ void matrix::print(bool p_processing){
 	for (byte r = 0; r < rowCount(); r++) {
 		for (byte c = 0; c < colCount(); c++) {
 			
-			// If this element is positive, print an extra space to align it with negative values
+			// If this element is positive, prfloat an extra space to align it with negative values
 			if (m_matrix[r][c] >= 0)
 				Com.print(" ");
 
-			// Print the element
+			// Prfloat the element
 			Com.print(m_matrix[r][c]);
 
-			// If this matrix is an inverse, print its denominator value
+			// If this matrix is an inverse, prfloat its denominator value
 			if (m_inv_denom != 0){
 				Com.print("/");
 				Com.print(m_inv_denom);
 			}
 
-			// Print a tab for spacing
+			// Prfloat a tab for spacing
 			Com.print("\t");
 		}
 		// Move to the next row
@@ -754,159 +753,5 @@ void matrix::printCol(int p_column){
 		Com.print(m_matrix[r][p_column]);
 		Com.println("");
 	}
-	Com.println("");
-}
-
-/*************************************************************************/
-/************************* floatMatrix Functions *************************/
-/*************************************************************************/
-
-// Default constructor
-floatMatrix::floatMatrix(){
-
-	m_matrix = NULL;
-	m_rows = 0;
-	m_columns = 0;
-
-}
-
-// Default destructor
-floatMatrix::~floatMatrix() {
-
-	// Make sure matrix memory is deallocated
-	// before destructing the objects
-	deleteMatrix();
-}
-
-// Constructor that initializes matrix with size p_rows x p_columns
-floatMatrix::floatMatrix(int p_rows, int p_columns){
-
-	m_matrix = NULL;
-	init(p_rows, p_columns);
-
-}
-
-// Initialize matrix with size p_rows x p_columns
-void floatMatrix::init(int p_rows, int p_columns){
-
-	// Make sure any existing matrix is cleared first
-	deleteMatrix();
-
-	m_rows = p_rows;
-	m_columns = p_columns;
-
-	// Allocate memory for new matrix
-	m_matrix = new float*[m_rows];
-	for (int i = 0; i < m_rows; i++)
-		m_matrix[i] = new float[m_columns];
-}
-
-// Deallocates the memory for the object matrix
-void floatMatrix::deleteMatrix() {
-
-	// If the matrixs pointers are null, then
-	// don't delete it, since there isn't any
-	// memory to deallocate.
-
-	if (m_matrix != NULL){
-		for (byte i = 0; i < m_columns; i++){
-			delete[] m_matrix[i];
-		}
-		delete[] m_matrix;
-
-		// Re-set m_matrix as null pointer
-		m_matrix = NULL;
-	}
-}
-
-// Copies source matrix into current matrix
-void floatMatrix::copy(const floatMatrix& p_source){
-
-	// Resize matrix if it doesn't match the source
-	if (!sizeMatch(p_source))
-		this->init(p_source.rowCount(), p_source.colCount());
-
-	// Copy data from source
-	for (byte r = 0; r < m_rows; r++){
-		for (byte c = 0; c < m_columns; c++){
-			this->m_matrix[r][c] = p_source.m_matrix[r][c];
-		}
-	}
-}
-
-// Checks whether current matrix object and target have matching dimensions
-bool floatMatrix::sizeMatch(const floatMatrix& p_B) const {
-	if (this->m_columns == p_B.m_columns && this->m_rows == p_B.m_rows)
-		return true;
-	else
-		return false;
-}
-
-// Set the value of the specified matrix element. Return an error code if an invalid position is given
-int floatMatrix::setValue(int p_row, int p_column, float p_value) {
-
-	// Don't allow setting value outside established matrix size
-	if (p_row >= m_rows || p_column >= m_columns || p_row < 0 || p_column < 0)
-		return -1;
-
-	m_matrix[p_row][p_column] = p_value;
-}
-
-// Returns the number of rows in the matrix
-int floatMatrix::rowCount() const {
-	return m_rows;
-}
-
-// Returns the number of columns in the matrix
-int floatMatrix::colCount() const {
-	return m_columns;
-}
-
-// Returns the value of the specified element
-int floatMatrix::getValue(int p_row, int p_column) {
-	return m_matrix[p_row][p_column];
-}
-
-// Prints the entire matrix with name header
-void floatMatrix::print(String p_name, bool p_processing){
-
-	if (p_processing)
-		floatMatrix::print(true);
-
-	Com.println("");
-	Com.println(p_name);
-	floatMatrix::print(false);
-}
-
-// Prints the entire matrix
-void floatMatrix::print(bool p_processing){
-
-	if (p_processing){
-		for (byte r = 0; r < rowCount(); r++) {
-			for (byte c = 0; c < colCount(); c++) {
-				Com.println(m_matrix[r][c]);
-			}
-		}
-		Com.println(5555);
-		return;
-	}
-
-	for (byte r = 0; r < rowCount(); r++) {
-		for (byte c = 0; c < colCount(); c++) {
-
-			// If this element is positive, print an extra space to align it with negative values
-			if (m_matrix[r][c] >= 0)
-				Com.print(" ");
-
-			// Print the element
-			Com.print(m_matrix[r][c]);
-
-			// Print a tab for spacing
-			Com.print("\t");
-		}
-		// Move to the next row
-		Com.println("");
-	}
-	// Add a blank line
 	Com.println("");
 }

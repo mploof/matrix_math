@@ -9,23 +9,22 @@ Spline spline;
 void setup() {
 	Serial.begin(9600);
 
-	int points[] = {
-		-9,  0,
-		-8,  3,
-		-5,  4,
-		 0,  3,
-		 2,  4,
-		 4,  3,
-		 7,  5
+	float points[] = {
+		  0,  0,
+		  2, 0.25,
+		  //5,  3,
+		  //7,  5,
+		  9,  9
 	};
 
 	
-	spline.setInterpPts(points, 7);
-
+	spline.setInterpPts(points, 4);
+	spline.printInterpPts(true);
+	//spline.printCtrlPts("Control points");
 	
-	int curve_points = 50;
-	spline.getCurvePts(curve_points);
-
+	int curve_points = 60;
+	//spline.getCurvePts(curve_points);
+	//spline.printCurvePts("Curve points");
 
 	// Send code to indicate Arduino is ready to send data
 	//Serial.print(1);
@@ -48,19 +47,19 @@ void loop() {
 		switch (val) {
 			case '1':
 			{
-				spline.printInterpPts();
+				spline.printInterpPts(false);
 				blink(1);
 				break;
 			}
 			case '2':
 			{
-				spline.printCtrlPts();
+				spline.printCtrlPts(false);
 				blink(2);
 				break;
 			}
 			case '3':
 			{
-				spline.printCurvePts();
+				spline.printCurvePts(false);
 				blink(3);
 				break;
 			}
