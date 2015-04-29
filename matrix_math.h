@@ -75,44 +75,8 @@ private:
 	int			transposeInPlace();															// Transposes a matrix in place. Can only be performed on square matricies
 	int			cofactorMatrix(matrix& p_target) const;										// Creates cofactor matrix in target object
 	void		print(bool p_monitor, bool p_processing);									// Prints the matrix either in serial monitor or Processing format
-	
-};
-
-class floatMatrix {
-
-public:
-
-	// Constructors, destructors, init, and memory management
-	floatMatrix();													// Creates a matrix object of undifined size
-	floatMatrix(int p_rows, int p_columns);							// Creates a matrix object of size p_rows x p_columns.
-	~floatMatrix();													// Default destructor
-	void init(int p_rows, int p_columns);							// Initializes matrix of size p_rows x p_columns
-	
-	// Set functions	
-	float setValue(int p_row, int p_column, float p_value);			// Set the value of the specified matrix element. Return an error code if an invalid position is given
-	float setValues(float* p_value, int p_count);						// Set matrix elements with values from 1D array
-	void copy(const floatMatrix& p_source);							// Copies source matrix into current matrix
-
-	// Get functions
-	float rowCount() const;											// Returns the number of rows in the matrix
-	float colCount() const;											// Returns the number of columns in the matrix
-	float getValue(int, int);											// Returns the value of the specified element
-
-	// Prfloat functions
-	void print(String, bool p_processing);							// Prints the entire matrix with name header
-	void print(bool p_processing);									// Prints the entire matrix
-
-private:
-
-	// Variables
-	float**		m_matrix;											// Double pointer that will become a dynamically allocated 2D float matrix
-	int			m_rows;												// Number of rows in the matrix
-	int			m_columns;											// Number of columns in the matrix
-
-	// Functions
-	bool		sizeMatch(const floatMatrix&) const;				// Checks whether current matrix object and target have matching dimensions
-	void		deleteMatrix();										// Clears the memory allocated for the matrix object and points it to NULL
-
+	static int	generateID();
+	int			m_nID;
 };
 
 #endif
