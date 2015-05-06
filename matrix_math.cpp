@@ -689,7 +689,7 @@ bool matrix::sizeMatch(const matrix& p_A, const matrix& p_B){
 
 /*********************************
 
-		Prfloat Functions
+		Print Functions
 
 **********************************/
 
@@ -710,7 +710,8 @@ void matrix::print(){
 // Prints the entire matrix
 void matrix::print(bool p_monitor, bool p_processing){
 
-	if (p_monitor == 0){
+	// Sending to Processing sketch
+	if (p_processing){
 		for (byte r = 0; r < rowCount(); r++) {
 			for (byte c = 0; c < colCount(); c++) {
 				Com.println(m_matrix[r][c]);
@@ -720,30 +721,33 @@ void matrix::print(bool p_monitor, bool p_processing){
 		return;
 	}
 
-	for (byte r = 0; r < rowCount(); r++) {
-		for (byte c = 0; c < colCount(); c++) {
-			
-			// If this element is positive, prfloat an extra space to align it with negative values
-			if (m_matrix[r][c] >= 0)
-				Com.print(" ");
+	// Sending to serial monitor
+	else{
+		for (byte r = 0; r < rowCount(); r++) {
+			for (byte c = 0; c < colCount(); c++) {
 
-			// Prfloat the element
-			Com.print(m_matrix[r][c]);
+				// If this element is positive, prfloat an extra space to align it with negative values
+				if (m_matrix[r][c] >= 0)
+					Com.print(" ");
 
-			// If this matrix is an inverse, prfloat its denominator value
-			if (m_inv_denom != 0){
-				Com.print("/");
-				Com.print(m_inv_denom);
+				// Prfloat the element
+				Com.print(m_matrix[r][c]);
+
+				// If this matrix is an inverse, prfloat its denominator value
+				if (m_inv_denom != 0){
+					Com.print("/");
+					Com.print(m_inv_denom);
+				}
+
+				// Prfloat a tab for spacing
+				Com.print("\t");
 			}
-
-			// Prfloat a tab for spacing
-			Com.print("\t");
+			// Move to the next row
+			Com.println("");
 		}
-		// Move to the next row
+		// Add a blank line
 		Com.println("");
 	}
-	// Add a blank line
-	Com.println("");
 }
 
 // Prints specified row

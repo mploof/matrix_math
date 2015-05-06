@@ -3,12 +3,16 @@
 #include "spline_calc.h"
 
 
+const int XY_SIZE = 2;
 
 Spline spline;
+//float* KF_locations = NULL;
+float KF_locations[17];
 bool debug = true;
 enum{WAIT, RECEIVE, SEND};
 int state = WAIT;
-uint8_t buf[32];
+int KF_count = 0;
+
 
 void setup() {
 	Serial.begin(9600);
@@ -23,7 +27,7 @@ void setup() {
 	//};
 
 
-	//spline.setInterpPts(points);
+	
 	//spline.printInterpPts(true);
 	////spline.printCtrlPts("Control points");
 	//
@@ -56,6 +60,8 @@ void loop() {
 	delay(10);
 }
 
+/************************* State Functions *************************/
+
 void wait(){
 
 	if (Serial.available() > 0){
@@ -68,11 +74,11 @@ void wait(){
 
 		switch (val) {
 		case 1:				
-			Serial.println(1);
+			response(true);
 			state = RECEIVE;
 			break;
 		case 2:
-			Serial.println(1);
+			response(true);
 			state = SEND;
 			break;
 		default:
@@ -83,110 +89,68 @@ void wait(){
 }
 
 void receive(){
-	
-	memset(buf, 0, 10);
-	int TIMEOUT = 2000;
-	int count = Serial.available();
 
-	for (int i = 0; i < count; i++){
-		uint8_t* p = (uint8_t*)(void*)&buf[i];
-		// If data is immediately available, write it
-		if (Serial.available() > 0){
-			*p = (uint8_t)Serial.read();
-		}
-		// Otherwise wait till some shows up
-		else{
-			unsigned long timer = millis();
-			// wait until we have data ready
-			while (Serial.available() < 1) {
-				if (millis() - timer > TIMEOUT) {
-					// timed out waiting for complete input
-					return;
-				}
-			}
-			*p = (uint8_t)Serial.read();
+	// Get the number of incoming points	
+	while (true){
+		if (Serial.available()){
+			KF_count = Serial.read();
+			response(KF_count);
+			break;
 		}
 	}
-
-	Serial.println(ntoi(buf));
 	
-	//while (true){
-	//	if (Serial.available()){
-	//		blink(1);
-	//		char buffer[10];
-	//		for (int i = 0; i < 10; i++)
-	//			buffer[i]= '\0';
-	//		Serial.readBytesUntil('\n', buffer, Serial.available());
-	//		char* point = buffer;
-	//		int val = atoi(point);
-	//		blink(val);
-	//		Serial.print(val);
+	//// Free the location array if it's already been allocated
+	//if (KF_locations != NULL)
+	//	delete KF_locations;
+	//// Allocate new memory for the locations. Add an extra location to hold delimiter
+	//KF_locations = new float[(KF_count * XY_SIZE) + 1];
 
-			//int size = Serial.available();
-			//char* in_byte = new char[size];
-			//int i = 0;
-			//while (Serial.available()){
-			//	in_byte[i] = Serial.read();
-			//	i++;
-			//}
-			//char* point = in_byte;
-			//for (int j = 0; j < size; j++){
-			//	Serial.println(in_byte[j]);
-			//}
-			////Serial.println(444);
-			////Serial.println(atof(point));
-			//delete in_byte;
-	/*		break;
-		}
-	}*/
+	// Store the XY coordinates for each of the points
+	for (byte i = 0; i < KF_count * XY_SIZE; i++){
+		delay(50);
+		float val = readFloat();
+		KF_locations[i] = val;
+		response(round(val));
+		// Check whether the calculated value was really an error code
+		//if (val > -5000){
+		//	//blink(2);
+		//	response(val);
+		//}
+		//else{
+		//	blink(10);
+		//	response(false);
+		//	state = WAIT;
+		//	return;
+		//}			
+		
+	}
+	// Add end of array delimiter
+	KF_locations[KF_count * XY_SIZE + 1] = -1;
+
+	// Set the interpolation points from the array values
+	spline.setInterpPts(KF_locations);
+	int curve_points = 10;
+	spline.getCurvePts(curve_points);
+
+	// Signal to Processing that computations are completed
+	response(true);
+
+	// Go back to waiting state
+	state = SEND;
+}
+	
+void send(){	
+	spline.printCurvePts(false);
 	state = WAIT;
-
 }
 
-	
-void send(){
-	// Wait till a command is received
-	if (Serial.available() > 0){
-		
-		char val = Serial.read();
 
-		// Flush the serial buffer
-		while (Serial.available()){
-			Serial.read();
-		}
 
-		switch (val) {
-			case '1':
-			{
-				spline.printInterpPts(false);
-				blink(1);
-				break;
-			}
-			case '2':
-			{
-				spline.printCtrlPts(false);
-				blink(2);
-				break;
-			}
-			case '3':
-			{
-				spline.printCurvePts(false);
-				blink(3);
-				break;
-			}
-			default:
-				break;
-		}		
-		
-		// Flush the serial buffer
-		while (Serial.available()){
-			Serial.read();
-		}
-		
-	}
 
-	// Delay between checks of the serial buffer
-	delay(10);
+/************************* Helper Functions *************************/
+
+void response(int p_ok){
+	Serial.println(p_ok);
 }
 
 void blink(int p_count){
@@ -198,78 +162,28 @@ void blink(int p_count){
 	}
 }
 
-
-/** Convert Network-order Bytes to Integer
-
-@param p_dat
-A pointer to an array of bytes
-
-@return
-A signed integer
-*/
-
-int ntoi(uint8_t* p_dat) {
-	int ret = ((int)p_dat[0] << 8) + (int)p_dat[1];
-	return(ret);
-}
-
-/** Convert Network-order Bytes to Unsigned Integer
-
-@param p_dat
-A pointer to an array of bytes
-
-@return
-An unsigned integer
-*/
-
-unsigned int ntoui(uint8_t* p_dat) {
-	unsigned int ret = ((unsigned int)p_dat[0] << 8) + (unsigned int)p_dat[1];
-	return(ret);
-}
-
-/** Convert Network-order Bytes to Unsigned Long
-
-@param p_dat
-A pointer to an array of bytes
-
-@return
-An unsigned long
-*/
-
-unsigned long ntoul(uint8_t* p_dat) {
-	unsigned long ret = (unsigned long)(((unsigned long)p_dat[0] << 24) + (unsigned long)p_dat[1]) << 16;
-	ret |= (unsigned long)(((unsigned long)p_dat[2] << 8) + ((unsigned long)p_dat[3]));
-	return(ret);
-}
-
-/** Convert Network-order Bytes to Long
-
-@param p_dat
-A pointer to an array of bytes
-
-@return
-A long
-*/
-
-long ntol(uint8_t* p_dat) {
-	unsigned long ret = (long)(((long)p_dat[0] << 24) + ((long)p_dat[1] << 16));
-	ret |= (long)(((long)p_dat[2] << 8) + ((long)p_dat[3]));
-	return(ret);
-}
-
-/** Convert Network-order Bytes to Float
-
-@param p_dat
-A pointer to an array of bytes
+/** Read four bytes from serial buffer and return converted float value
 
 @return
 A float
 */
 
-float ntof(uint8_t* p_dat) {
-	float ret;
-	unsigned long * _fl = (unsigned long *)(&ret);
-	*_fl = (unsigned long)(((unsigned long)p_dat[0] << 8) + (unsigned long)p_dat[1]) << 16;
-	*_fl |= (unsigned long)(((unsigned long)p_dat[2] << 8) + ((unsigned long)p_dat[3]));
-	return(ret);
+float readFloat() {
+	const int SIZE = 4;
+	const int TIMEOUT = 4000;
+	uint8_t buf[SIZE];	
+	unsigned long time = millis();	
+	while (millis() - time < TIMEOUT){
+		if (Serial.available() == SIZE){			
+			for (byte i = 0; i < SIZE; i++){
+				buf[SIZE - 1 - i] = Serial.read();
+			}
+			float ret;
+			unsigned long * _fl = (unsigned long *)(&ret);
+			*_fl = (unsigned long)(((unsigned long)buf[0] << 8) + (unsigned long)buf[1]) << 16;
+			*_fl |= (unsigned long)(((unsigned long)buf[2] << 8) + ((unsigned long)buf[3]));
+			return(ret);
+		}
+	}
+	return -5001;
 }
