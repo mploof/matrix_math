@@ -64,9 +64,9 @@ void matrix::init(int p_rows, int p_columns){
 	m_det_defined = false;
 
 	// Allocate memory for new matrix
-	m_matrix = new float*[m_rows];
+	m_matrix = (float **)malloc(m_rows * sizeof(float *));
 	for (int i = 0; i < m_rows; i++)
-		m_matrix[i] = new float[m_columns];
+		m_matrix[i] = (float *)malloc(m_columns * sizeof(float));
 }
 
 // Initialize matrix with size p_rows x p_columns, where all elements = p_fill
@@ -95,9 +95,9 @@ void matrix::deleteMatrix() {
 	if (m_matrix != NULL){
 
 		for (byte i = 0; i < m_columns; i++){
-			delete[] m_matrix[i];
+			free(m_matrix[i]);
 		}
-		delete[] m_matrix;
+		free(m_matrix);
 
 		// Re-set m_matrix as null pointer
 		m_matrix = NULL;
@@ -174,18 +174,21 @@ int matrix::setPointConstants(float* p_value, float p_point_count){
 
 // Sets 4s down matrix diagonal with 1s on either side of 4s
 void matrix::set141(){
-
-	for (byte r = 0; r < m_rows; r++){
-		for (byte c = 0; c < m_columns; c++){
-			if (c == r)
+		
+	for (byte r = 0; r < m_rows; r++){								
+		for (byte c = 0; c < m_columns; c++){		
+			if (c == r){		
 				m_matrix[r][c] = 4;
-			else if (c == r + 1 || c == r - 1)
+			}
+			else if (c == r + 1 || c == r - 1){		
 				m_matrix[r][c] = 1;
-			else
+			}
+			else{		
 				m_matrix[r][c] = 0;
+			}
 		}
 	}
-
+	
 	// Determinant is no longer defined
 	m_det_defined = false;
 
@@ -695,7 +698,7 @@ bool matrix::sizeMatch(const matrix& p_A, const matrix& p_B){
 
 /*** Public ***/
 
-// Prints the entire matrix with name header
+ //Prints the entire matrix with name header
 void matrix::print(String p_name){
 
 	Com.println("");
@@ -717,7 +720,7 @@ void matrix::print(bool p_monitor, bool p_processing){
 				Com.println(m_matrix[r][c]);
 			}
 		}
-		Com.println(5555);
+		//Com.println(5555);
 		return;
 	}
 
