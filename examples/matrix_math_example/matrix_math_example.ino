@@ -1,3 +1,4 @@
+#include <MemoryFree.h>
 #include "Arduino.h"
 #include "matrix_math.h"
 #include "spline_calc.h"
@@ -6,16 +7,21 @@
 const int XY_SIZE = 2;
 
 Spline spline;
-//float* KF_locations = NULL;
-float KF_locations[17];
+float* KF_locations = (float *)malloc(17 * sizeof(float));
+//float KF_locations[17];
 bool debug = true;
-enum{WAIT, RECEIVE, SEND};
+enum{WAIT = 2, RECEIVE, SEND};
 int state = WAIT;
 int KF_count = 0;
 
 
 void setup() {
-	Serial.begin(9600);
+	Com.begin(9600);
+
+	for (byte i = 2; i < 13; i++){
+		pinMode(i, OUTPUT);
+		digitalWrite(i, LOW);
+	}
 
 	//float points[] = {
 	//	  0,  0,
@@ -42,16 +48,16 @@ void setup() {
 }
 
 void loop() {
-
+	checkMem();
 	// Wait for initial command receive / send command
 	switch (state){
 	case WAIT:
-		wait();
+		wait();		
 		break;
 	case RECEIVE:		
 		receive();
 		break;
-	case SEND:
+	case SEND:		
 		send();
 		break;
 	}
@@ -64,12 +70,12 @@ void loop() {
 
 void wait(){
 
-	if (Serial.available() > 0){
-		int val = Serial.read();		
+	if (Com.available() > 0){
+		int val = Com.read();		
 
 		//// Flush the serial buffer
-		//while (Serial.available()){
-		//	Serial.read();
+		//while (Com.available()){
+		//	Com.read();
 		//}
 
 		switch (val) {
@@ -88,79 +94,85 @@ void wait(){
 	}
 }
 
+void checkMem(){
+	int mem = freeMemory();
+	int which = floor(mem / 25);
+	if (which > 12)
+		led(12);
+	else
+		led(which);
+}
+
 void receive(){
 
+	int spline_pnt_count = 0;
+
 	// Get the number of incoming points	
-	while (true){
-		if (Serial.available()){
-			KF_count = Serial.read();
+	while (true){		
+		if (Com.available()){
+			KF_count = Com.read();
 			response(KF_count);
 			break;
 		}
 	}
-	
-	//// Free the location array if it's already been allocated
-	//if (KF_locations != NULL)
-	//	delete KF_locations;
-	//// Allocate new memory for the locations. Add an extra location to hold delimiter
-	//KF_locations = new float[(KF_count * XY_SIZE) + 1];
 
-	// Store the XY coordinates for each of the points
-	for (byte i = 0; i < KF_count * XY_SIZE; i++){
-		delay(50);
-		float val = readFloat();
-		KF_locations[i] = val;
-		response(round(val));
-		// Check whether the calculated value was really an error code
-		//if (val > -5000){
-		//	//blink(2);
-		//	response(val);
-		//}
-		//else{
-		//	blink(10);
-		//	response(false);
-		//	state = WAIT;
-		//	return;
-		//}			
-		
+	// Get the number of curve points to generate
+	while (true){		
+		if (Com.available()){
+			spline_pnt_count = Com.read();
+			response(spline_pnt_count);
+			break;
+		}
 	}
+	
+	// Deallocate KF array memory
+	free(KF_locations);	
+
+	// Reallocate with new size
+	KF_locations = (float *)malloc((KF_count * 2 + 1) * sizeof(float));
+	delay(100);
+	
+	// Store the XY coordinates for each of the points
+	for (byte i = 0; i < KF_count * XY_SIZE; i++){				
+		float val = readFloat();
+		KF_locations[i] = val;	
+		response(round(val));			
+	}	
+	
 	// Add end of array delimiter
-	KF_locations[KF_count * XY_SIZE + 1] = -1;
-
-	// Set the interpolation points from the array values
-	spline.setInterpPts(KF_locations);
-	int curve_points = 10;
-	spline.getCurvePts(curve_points);
-
+	KF_locations[KF_count * XY_SIZE] = -1;
+	
+	// Set the interpolation points from the array values	
+	spline.setInterpPts(KF_locations);		
+	
+	spline.getCurvePts(spline_pnt_count);
+	
 	// Signal to Processing that computations are completed
 	response(true);
-
+	
 	// Go back to waiting state
 	state = SEND;
+	
 }
 	
 void send(){	
 	spline.printCurvePts(false);
+	clearSerial();
 	state = WAIT;
 }
 
 
-
-
 /************************* Helper Functions *************************/
 
+void led(int p_which){
+	for (byte i = 2; i < 13; i++)
+		digitalWrite(i, LOW);
+	digitalWrite(p_which, HIGH);
+}
 void response(int p_ok){
-	Serial.println(p_ok);
+	Com.println(p_ok);
 }
 
-void blink(int p_count){
-	for (byte i = 0; i < p_count; i++){
-		digitalWrite(13, HIGH);
-		delay(100);
-		digitalWrite(13, LOW);
-		delay(100);
-	}
-}
 
 /** Read four bytes from serial buffer and return converted float value
 
@@ -170,13 +182,13 @@ A float
 
 float readFloat() {
 	const int SIZE = 4;
-	const int TIMEOUT = 4000;
+	const int MAX_TIME = 4000;
 	uint8_t buf[SIZE];	
 	unsigned long time = millis();	
-	while (millis() - time < TIMEOUT){
-		if (Serial.available() == SIZE){			
+	while (millis() - time < MAX_TIME){
+		if (Com.available() == SIZE){			
 			for (byte i = 0; i < SIZE; i++){
-				buf[SIZE - 1 - i] = Serial.read();
+				buf[SIZE - 1 - i] = Com.read();
 			}
 			float ret;
 			unsigned long * _fl = (unsigned long *)(&ret);
@@ -186,4 +198,10 @@ float readFloat() {
 		}
 	}
 	return -5001;
+}
+
+void clearSerial(){
+	while (Com.available()){
+		Com.read();
+	}
 }
