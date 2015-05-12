@@ -94,9 +94,8 @@ void matrix::deleteMatrix() {
 	// don't delete it, since there isn't any
 	// memory to deallocate.
 	
-	if (m_matrix != NULL){
-
-		for (byte i = 0; i < m_columns; i++){
+	if (m_matrix != NULL){		
+		for (byte i = 0; i < m_rows; i++){
 			free(m_matrix[i]);
 		}
 		free(m_matrix);
