@@ -23,27 +23,27 @@ public:
 	void init(int p_rows, int p_columns, float p_fill);										// Initializes matrix of size p_rows x p_columns filled with p_fill
 
 	// Set functions	
-	int setValue(int p_row, int p_column, float p_value);										// Set the value of the specified matrix element. Return an error code if an invalid position is given
+	int setValue(int p_row, int p_column, float p_value);									// Set the value of the specified matrix element. Return an error code if an invalid position is given
 	int setValues(float* p_value, int p_count);												// Set matrix elements with values from 1D array
 	void set141();																			// Sets 4s down matrix diagonal with 1s on either side of 4s
-	int setPointConstants(float* p_value, float p_point_count);									// Sets the "C" matrix of size (p_point_count - 2) x 2
+	int setPointConstants(float* p_value, float p_point_count);								// Sets the "C" matrix of size (p_point_count - 2) x 2
 	void copy(const matrix& p_source);														// Copies source matrix into current matrix
 
 	// Get functions
 	int rowCount() const;																	// Returns the number of rows in the matrix
 	int colCount() const;																	// Returns the number of columns in the matrix
-	float getValue(int, int);																	// Returns the value of the specified element
+	float getValue(int, int);																// Returns the value of the specified element
 	void getRow(int p_row, matrix& p_row_vector);											// Sets n x 1 input vector as specified column
 	void getColumn(int p_column, matrix& p_column_vector);									// Sets 1 x n input vector as specified row
 
 	// Math functions
 	// These are all static and are called from the class, not from the objects
 	static int		add(const matrix& p_A, const matrix& p_B, matrix& p_target);			// [A] +  [B]  = [target]
-	static void		add(const matrix& p_A, float p_const, matrix& p_target);					// [A] +  float  = [target]
+	static void		add(const matrix& p_A, float p_const, matrix& p_target);				// [A] +  float  = [target]
 	static int		subtract(const matrix& p_A, const matrix& p_B, matrix& p_target);		// [A] -  [B]  = [target]
-	static void		subtract(const matrix& p_A, float p_const, matrix& p_target);				// [A] -  float  = [target]
+	static void		subtract(const matrix& p_A, float p_const, matrix& p_target);			// [A] -  float  = [target]
 	static int		mult(const matrix& p_A, const matrix& p_B, matrix& p_target);			// [A] *  [B]  = [target]
-	static void		mult(float p_const, const matrix& p_A, matrix& p_target);					// [A] *  float  = [target]
+	static void		mult(float p_const, const matrix& p_A, matrix& p_target);				// [A] *  float  = [target]
 	static int		determinant(const matrix& p_matrix);									// det[A]
 	static void		transpose(const matrix& p_matrix, matrix& p_target);					// transpose[A] = [target]
 	static int		inverse(const matrix& p_matrix, matrix& p_target);
@@ -63,6 +63,8 @@ private:
 	int			m_inv_denom;																// Denominator of inverse matrix element values
 	int			m_det;																		// Determinant of the matrix
 	bool		m_det_defined;																// Flag indicating whether the determinant has been calculated for the matrix yet
+	int			m_nID;																		// Current object's ID
+	static int	n_ID;																		// Static ID that will be assigned to next new object
 
 	// Functions
 	void		deleteMatrix();																// Clears the memory allocated for the matrix object and points it to NULL
@@ -75,8 +77,7 @@ private:
 	int			transposeInPlace();															// Transposes a matrix in place. Can only be performed on square matricies
 	int			cofactorMatrix(matrix& p_target) const;										// Creates cofactor matrix in target object
 	void		print(bool p_monitor, bool p_processing);									// Prints the matrix either in serial monitor or Processing format
-	static int	generateID();
-	int			m_nID;
+	static int	generateID();																// Assigns a new ID to the object	
 };
 
 #endif

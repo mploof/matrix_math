@@ -11,6 +11,8 @@
 
 /*** Public ***/
 
+int matrix::n_ID = 0;
+
 // Default constructor
 matrix::matrix(){
 
@@ -18,7 +20,6 @@ matrix::matrix(){
 	m_rows = 0;
 	m_columns = 0;
 	m_nID = generateID();
-
 }
 
 // Constructor that initializes matrix with size p_rows x p_columns
@@ -42,13 +43,14 @@ matrix::matrix(int p_rows, int p_columns, float p_fill){
 // Default destructor
 matrix::~matrix() {
 	// Make sure matrix memory is deallocated
-	// before destructing the objects
-	deleteMatrix();
+	// before destructing the objects	
+	matrix::n_ID--;
+	deleteMatrix();	
 }
 
 int matrix::generateID(){
-	static int n_ID = 0;
-	n_ID++;
+	//static int n_ID = 0;
+	matrix::n_ID++;
 	return n_ID;
 }
 
@@ -70,7 +72,7 @@ void matrix::init(int p_rows, int p_columns){
 }
 
 // Initialize matrix with size p_rows x p_columns, where all elements = p_fill
-void matrix::init(int p_rows, int p_columns, float p_fill){
+void matrix::init(int p_rows, int p_columns, float p_fill){	
 
 	init(p_rows, p_columns);
 
@@ -698,7 +700,7 @@ bool matrix::sizeMatch(const matrix& p_A, const matrix& p_B){
 
 /*** Public ***/
 
- //Prints the entire matrix with name header
+// Prints the entire matrix with name header
 void matrix::print(String p_name){
 
 	Com.println("");
